@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: grpc-service
+  name: grpc-service
+  namespace: myapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grpc-service
+  template:
+    metadata:
+      labels:
+        app: grpc-service
+    spec:
+      containers:
+        - image: grpc-service:2
+          name: grpc-service
+          imagePullPolicy: IfNotPresent
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: grpc-service
+  name: grpc-service
+  namespace: myapp
+spec:
+  ports:
+    - name: grpc
+      port: 7777
+      protocol: TCP
+      targetPort: 7777
+  selector:
+    app: grpc-service
+  type: ClusterIP

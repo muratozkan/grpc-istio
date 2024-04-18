@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option java_package = "me.murat.grpc";
+option java_multiple_files = true;
+
+message SampleRequest {
+  int32 delay = 1;
+}
+
+message SampleResponse {
+  int32 delay = 1;
+  string some_response = 2;
+}
+
+service TestService {
+  rpc executeUnary(SampleRequest) returns(SampleResponse);
+}

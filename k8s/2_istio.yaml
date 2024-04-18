@@ -1,0 +1,85 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: general-gateway
+  namespace: istio-ingress
+spec:
+  selector:
+    istio: ingress
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*"
+---
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: default-telemetry
+  namespace: istio-system
+spec:
+  accessLogging:
+    - filter:
+        expression: "response.code>=500 || response.flags!=0"
+      providers:
+        - name: envoy
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: grpc-service
+  namespace: myapp
+spec:
+  hosts:
+    - grpc-service.myapp.svc.cluster.local
+  http:
+    - match:
+        - port: 7777
+      retries:
+        attempts: 5
+        perTryTimeout: 4s
+        retryOn: connect-failure
+      route:
+        - destination:
+            host: grpc-service.myapp.svc.cluster.local
+            port:
+              number: 7777
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: grpc-service-ingress-grpc
+  namespace: myapp
+spec:
+  gateways:
+    - istio-ingress/general-gateway
+  hosts:
+    - "*"
+  http:
+    - match:
+        - port: 80
+      retries:
+        attempts: 5
+        perTryTimeout: 4s
+        retryOn: connect-failure
+      route:
+        - destination:
+            host: grpc-service.myapp.svc.cluster.local
+            port:
+              number: 7777
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: grpc-service
+  namespace: myapp
+spec:
+  host: grpc-service.myapp.svc.cluster.local
+  trafficPolicy:
+    loadBalancer:
+      simple: LEAST_CONN
+      warmupDurationSecs: 30s
+    tls:
+      mode: ISTIO_MUTUAL
